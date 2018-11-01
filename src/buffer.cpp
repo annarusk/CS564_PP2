@@ -40,16 +40,46 @@ BufMgr::~BufMgr() {
 
 void BufMgr::advanceClock()
 {
-
+	clockHand = (clockHand + 1) % numBufs;
 }
 
 void BufMgr::allocBuf(FrameId & frame) 
 {
+	FrameId startFrame = clockHand;
+	bool frameAvail = false;
+	
+	while(true) {
+		if(bufDescTable[clockHand].valid == false) {
+			bufDescTable[clockHand].valid = true;
+			bufDescTable[clockHand].pinCnt = 0;
+			frame = clockHand;
+			return;
+		}
+		if(bufDescTable[clockHand].pinCnt > 0) {
+			advanceClock();
+		}
+		else if(bufDescTable[clockHand].refbit == 1) {
+			bufDescTable[clockHand].refbit = 0;
+			frameAvail = true;
+			advanceClock();
+		}
+		else {
+			// write to disk?
+			bufDescTable[clockHand].pinCnt = 0;
+			frame = clockHand;
+			return;
+		}
+		// No Frames available
+		if (clockHand == startFrame && frameAvail == false) {
+			throw BufferExceededException();
+		}
+	}
 }
 
 	
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
+	//hashTable->insert();
 }
 
 
@@ -63,6 +93,10 @@ void BufMgr::flushFile(const File* file)
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
+	//*page = file->allocatePage();
+	FrameId frame = 0;
+	allocBuf(frame);
+	std::cout << "Selected: " << frame;
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
