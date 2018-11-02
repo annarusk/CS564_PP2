@@ -98,6 +98,19 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 		- If page found, set refbit, increment pinCnt, return pointer 
 		to frame in "page"
 	*/
+	FrameId frame;
+  	try {
+    		hashTable->lookup(file, pageNo, frame);
+    		bufDescTable[frame].refbit = 1;
+    		bufDescTable[frame].pinCnt++;
+    		page = &bufPool[frame];
+  	} catch (HashNotFoundException e) {
+    		allocBuf(frame);
+    		bufPool[frame] = file->readPage(pageNo);
+    		hashTable->insert(file, pageNo, frame);
+    		bufDescTable[frame].Set(file, pageNo);
+    		page = &bufPool[frame];
+  	}
 	//hashTable->insert();
 }
 
