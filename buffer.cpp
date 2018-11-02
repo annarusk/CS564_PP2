@@ -121,7 +121,8 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 	*/
 	FrameId frame;
 	try {
-		hashTable->lookup(file,pageNo, frame);
+		hashTable->lookup(file, pageNo, frame);
+		if (bufDescTable[frame].pinCnt == 0) throw PageNotPinnedException(file->filename(), pageNo, frame);
 		bufDescTable[frame].pinCnt--;
 		if(dirty) bufDescTable[frame].dirty = true;
 	}
@@ -155,7 +156,7 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 	bufDescTable[frame].Set(file,pageNo);
 	page = &bufPool[frame];
 
-	std::cout << "Selected: " << frame << "\n";
+	//std::cout << "Selected: " << frame << "\n";
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
