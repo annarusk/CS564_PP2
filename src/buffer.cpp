@@ -36,6 +36,8 @@ BufMgr::BufMgr(std::uint32_t bufs)
 
 
 BufMgr::~BufMgr() {
+	/* Flush dirty pages to disk, deallocate buffer pool and bufDescTable */
+
 }
 
 void BufMgr::advanceClock()
@@ -45,6 +47,10 @@ void BufMgr::advanceClock()
 
 void BufMgr::allocBuf(FrameId & frame) 
 {
+	/*	Allocate free frame using clock policy.
+		If replacing frame, remove from hashTable and write to disk if dirty.
+		Throw exception if all frames pinned.
+	*/
 	FrameId startFrame = clockHand;
 	bool frameAvail = false;
 	
@@ -79,29 +85,53 @@ void BufMgr::allocBuf(FrameId & frame)
 	
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
+	/*	Invoke hashTable->lookup to see if page is already in buffer.
+		- If HashNotFound, call allocBuf then file->readPage. Insert 
+		page into hashTable. Set entry in bufDescTable.
+		Return pointer to frame in "page"
+		- If page found, set refbit, increment pinCnt, return pointer 
+		to frame in "page"
+	*/
 	//hashTable->insert();
 }
 
 
 void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) 
 {
+	/*	Decrement pinCnt, possibly set dirty bit.
+		Throw PageNotPinned if pinCnt=0.
+	*/
 }
 
 void BufMgr::flushFile(const File* file) 
 {
+	/*	Scan bufDescTable for pages in buffer for file.
+		- if dirty, call file->writePage, unset dirty bit
+		- remove page from hashTable
+		- Clear entry in bufDescTable
+	*/
 }
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
+	/*	Create empty page with file->allocatePage.
+		Get buffer pool frame with allocBuf.
+		Store in hashtable with HashTable->insert.
+		Set entry in bufDescTable.
+		Return page number created and pointer to frame.
+	*/
 	//*page = file->allocatePage();
-	FrameId frame = 0;
+	FrameId frame = -1;
 	allocBuf(frame);
-	std::cout << "Selected: " << frame;
+	std::cout << "Selected: " << frame << "\n";
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
 {
-    
+    /*	Deletes page from file.
+		First checks to see if page is in buffer pool, and 
+		frees frame and removes entry from hashTable.
+	*/
 }
 
 void BufMgr::printSelf(void) 
