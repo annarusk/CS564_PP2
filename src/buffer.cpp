@@ -55,13 +55,15 @@ void BufMgr::allocBuf(FrameId & frame)
 	bool frameAvail = false;
 	
 	while(true) {
-		if(bufDescTable[clockHand].valid == false) {
-			bufDescTable[clockHand].valid = true;
-			bufDescTable[clockHand].pinCnt = 0;
+		if(!bufDescTable[clockHand].valid) {
+			// Always choose if current frame invalid.
+			//bufDescTable[clockHand].valid = true;
+			//bufDescTable[clockHand].pinCnt = 0;
 			frame = clockHand;
+			advanceClock();
 			return;
 		}
-		if(bufDescTable[clockHand].pinCnt > 0) {
+		else if(bufDescTable[clockHand].pinCnt > 0) {
 			advanceClock();
 		}
 		else if(bufDescTable[clockHand].refbit == 1) {
@@ -70,9 +72,13 @@ void BufMgr::allocBuf(FrameId & frame)
 			advanceClock();
 		}
 		else {
-			// write to disk?
-			bufDescTable[clockHand].pinCnt = 0;
+			// Valid, unpinned, unreferenced -> Replace frame
+			if(bufDescTable[clockHand].dirty) {
+				// write to disk?
+			}
+			//bufDescTable[clockHand].pinCnt = 0;
 			frame = clockHand;
+			advanceClock();
 			return;
 		}
 		// No Frames available
@@ -120,9 +126,14 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 		Set entry in bufDescTable.
 		Return page number created and pointer to frame.
 	*/
-	//*page = file->allocatePage();
-	FrameId frame = -1;
+	FrameId frame;
+	Page newPage = file->allocatePage();
+	pageNo = newPage.page_number();
 	allocBuf(frame);
+	hashTable->insert(file, pageNo, frame);
+	bufDescTable[frame].Set(file,pageNo);
+	page = &bufPool[frame];
+
 	std::cout << "Selected: " << frame << "\n";
 }
 
