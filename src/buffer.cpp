@@ -100,18 +100,17 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 	*/
 	FrameId frame;
   	try {
-    		hashTable->lookup(file, pageNo, frame);
-    		bufDescTable[frame].refbit = 1;
-    		bufDescTable[frame].pinCnt++;
-    		page = &bufPool[frame];
+    	hashTable->lookup(file, pageNo, frame);
+    	bufDescTable[frame].refbit = 1;
+    	bufDescTable[frame].pinCnt++;
+    	page = &bufPool[frame];
   	} catch (HashNotFoundException e) {
-    		allocBuf(frame);
-    		bufPool[frame] = file->readPage(pageNo);
-    		hashTable->insert(file, pageNo, frame);
-    		bufDescTable[frame].Set(file, pageNo);
-    		page = &bufPool[frame];
+    	allocBuf(frame);
+    	bufPool[frame] = file->readPage(pageNo);
+    	hashTable->insert(file, pageNo, frame);
+    	bufDescTable[frame].Set(file, pageNo);
+    	page = &bufPool[frame];
   	}
-	//hashTable->insert();
 }
 
 
@@ -120,6 +119,16 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 	/*	Decrement pinCnt, possibly set dirty bit.
 		Throw PageNotPinned if pinCnt=0.
 	*/
+	FrameId frame;
+	try {
+		hashTable->lookup(file, pageNo, frame);
+		if (bufDescTable[frame].pinCnt == 0) throw PageNotPinnedException(file->filename(), pageNo, frame);
+		bufDescTable[frame].pinCnt--;
+		if(dirty) bufDescTable[frame].dirty = true;
+	}
+	catch (HashNotFoundException e) {
+		return;
+	}
 }
 
 void BufMgr::flushFile(const File* file) 
@@ -147,7 +156,7 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 	bufDescTable[frame].Set(file,pageNo);
 	page = &bufPool[frame];
 
-	std::cout << "Selected: " << frame << "\n";
+	//std::cout << "Selected: " << frame << "\n";
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
