@@ -39,12 +39,12 @@ BufMgr::~BufMgr() {
 	/* Flush dirty pages to disk, deallocate buffer pool and bufDescTable */
 	for (FrameId i=0; i<numBufs; i++) {
 		if (bufDescTable[i].dirty) {
-			bufDescTable[i].file->writePage(bufPool[i]);
+			//bufDescTable[i].file->writePage(bufPool[i]);
 		}
 	}
-	delete bufPool;
-	delete hashTable;
-	delete bufDescTable;
+	//delete bufPool;
+	//delete hashTable;
+	//delete bufDescTable;
 }
 
 void BufMgr::advanceClock()
@@ -85,11 +85,12 @@ void BufMgr::allocBuf(FrameId & frame)
 			// Valid, unpinned, unreferenced -> Replace frame
 			if(bufDescTable[clockHand].dirty) {
 				// Need to write dirty frame to disk before replacing
-				//bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
-				//bufDescTable[clockHand].dirty = false;
+				bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+				bufDescTable[clockHand].dirty = false;
 			}
 			// Need to remove reference to existing frame from HashTable
-			//hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+			hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+			bufDescTable[clockHand].Clear();
 			frame = clockHand;
 			advanceClock();
 			return;
@@ -183,14 +184,12 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 		Return page number created and pointer to frame.
 	*/
 	FrameId frame;
-	Page newPage = file->allocatePage();
-	pageNo = newPage.page_number();
 	allocBuf(frame);
+	bufPool[frame] = file->allocatePage();
+	pageNo = bufPool[frame].page_number();
 	hashTable->insert(file, pageNo, frame);
 	bufDescTable[frame].Set(file,pageNo);
 	page = &bufPool[frame];
-
-	//std::cout << "Selected: " << frame << "\n";
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
