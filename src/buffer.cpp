@@ -58,7 +58,6 @@ void BufMgr::allocBuf(FrameId & frame)
 	/*	Allocate free frame using clock policy.
 		If replacing frame, remove from hashTable and write to disk if dirty.
 		Throw exception if all frames pinned.
-
 		Not threadsafe.
 	*/
 	FrameId startFrame = clockHand;
@@ -86,11 +85,11 @@ void BufMgr::allocBuf(FrameId & frame)
 			// Valid, unpinned, unreferenced -> Replace frame
 			if(bufDescTable[clockHand].dirty) {
 				// Need to write dirty frame to disk before replacing
-				bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
-				bufDescTable[clockHand].dirty = false;
+				//bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+				//bufDescTable[clockHand].dirty = false;
 			}
 			// Need to remove reference to existing frame from HashTable
-			hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+			//hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
 			frame = clockHand;
 			advanceClock();
 			return;
@@ -113,12 +112,12 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 		to frame in "page"
 	*/
 	FrameId frame;
-  	try {
-    	hashTable->lookup(file, pageNo, frame);
+	try {
+		hashTable->lookup(file, pageNo, frame);
 		// Page found
-    	bufDescTable[frame].refbit = 1;
-    	bufDescTable[frame].pinCnt++;
-    	page = &bufPool[frame];
+		bufDescTable[frame].refbit = 1;
+		bufDescTable[frame].pinCnt++;
+		page = &bufPool[frame];
   	}
 	catch (HashNotFoundException e) {
 		// Page not found, read into buffer from file.
@@ -143,7 +142,7 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 			throw PageNotPinnedException(file->filename(), pageNo, frame);
 		} else {
 			bufDescTable[frame].pinCnt--;
-			if(dirty) bufDescTable[frame].dirty = true;
+			if (dirty) bufDescTable[frame].dirty = true;
 		}
 	}
 	catch (HashNotFoundException e) {
