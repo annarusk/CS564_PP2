@@ -37,11 +37,19 @@ BufMgr::BufMgr(std::uint32_t bufs)
 
 BufMgr::~BufMgr() {
 	/* Flush dirty pages to disk, deallocate buffer pool and bufDescTable */
-
+	for (FrameId i=0; i<numBufs; i++) {
+		if (bufDescTable[i].dirty) {
+			bufDescTable[i].file->writePage(bufPool[i]);
+		}
+	}
+	delete bufPool;
+	delete hashTable;
+	delete bufDescTable;
 }
 
 void BufMgr::advanceClock()
 {
+	/* Advances clockHand to next frame, returning to 0 as needed */
 	clockHand = (clockHand + 1) % numBufs;
 }
 
@@ -50,6 +58,8 @@ void BufMgr::allocBuf(FrameId & frame)
 	/*	Allocate free frame using clock policy.
 		If replacing frame, remove from hashTable and write to disk if dirty.
 		Throw exception if all frames pinned.
+
+		Not threadsafe.
 	*/
 	FrameId startFrame = clockHand;
 	bool frameAvail = false;
@@ -57,16 +67,17 @@ void BufMgr::allocBuf(FrameId & frame)
 	while(true) {
 		if(!bufDescTable[clockHand].valid) {
 			// Always choose if current frame invalid.
-			//bufDescTable[clockHand].valid = true;
-			//bufDescTable[clockHand].pinCnt = 0;
 			frame = clockHand;
 			advanceClock();
 			return;
 		}
 		else if(bufDescTable[clockHand].pinCnt > 0) {
+			// If current frame in use, dereference and skip.
+			bufDescTable[clockHand].refbit = 0;
 			advanceClock();
 		}
 		else if(bufDescTable[clockHand].refbit == 1) {
+			// If current frame not in use, but referenced, dereference and skip.
 			bufDescTable[clockHand].refbit = 0;
 			frameAvail = true;
 			advanceClock();
@@ -74,9 +85,12 @@ void BufMgr::allocBuf(FrameId & frame)
 		else {
 			// Valid, unpinned, unreferenced -> Replace frame
 			if(bufDescTable[clockHand].dirty) {
-				// write to disk?
+				// Need to write dirty frame to disk before replacing
+				bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+				bufDescTable[clockHand].dirty = false;
 			}
-			//bufDescTable[clockHand].pinCnt = 0;
+			// Need to remove reference to existing frame from HashTable
+			hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
 			frame = clockHand;
 			advanceClock();
 			return;
@@ -101,10 +115,13 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 	FrameId frame;
   	try {
     	hashTable->lookup(file, pageNo, frame);
+		// Page found
     	bufDescTable[frame].refbit = 1;
     	bufDescTable[frame].pinCnt++;
     	page = &bufPool[frame];
-  	} catch (HashNotFoundException e) {
+  	}
+	catch (HashNotFoundException e) {
+		// Page not found, read into buffer from file.
     	allocBuf(frame);
     	bufPool[frame] = file->readPage(pageNo);
     	hashTable->insert(file, pageNo, frame);
@@ -122,9 +139,12 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 	FrameId frame;
 	try {
 		hashTable->lookup(file, pageNo, frame);
-		if (bufDescTable[frame].pinCnt == 0) throw PageNotPinnedException(file->filename(), pageNo, frame);
-		bufDescTable[frame].pinCnt--;
-		if(dirty) bufDescTable[frame].dirty = true;
+		if (bufDescTable[frame].pinCnt == 0) {
+			throw PageNotPinnedException(file->filename(), pageNo, frame);
+		} else {
+			bufDescTable[frame].pinCnt--;
+			if(dirty) bufDescTable[frame].dirty = true;
+		}
 	}
 	catch (HashNotFoundException e) {
 		return;
@@ -137,7 +157,22 @@ void BufMgr::flushFile(const File* file)
 		- if dirty, call file->writePage, unset dirty bit
 		- remove page from hashTable
 		- Clear entry in bufDescTable
+	* Need to check for frames which are pinned or invalid.
 	*/
+	for(FrameId i=0; i<numBufs; i++) {
+		if(bufDescTable[i].file == file) {
+			if(bufDescTable[i].pinCnt > 0)
+				throw PagePinnedException(file->filename(), bufDescTable[i].pageNo,i);
+			if(!bufDescTable[i].valid)
+				throw BadBufferException(i,bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
+			if(bufDescTable[i].dirty) {
+				bufDescTable[i].file->writePage(bufPool[i]);
+				bufDescTable[i].dirty = false;
+			}
+			hashTable->remove(file,bufDescTable[i].pageNo);
+			bufDescTable[i].Clear();
+		}
+	}
 }
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
@@ -165,6 +200,17 @@ void BufMgr::disposePage(File* file, const PageId PageNo)
 		First checks to see if page is in buffer pool, and 
 		frees frame and removes entry from hashTable.
 	*/
+	FrameId frame;
+	try {
+		hashTable->lookup(file, PageNo, frame);
+		// Page in buffer.
+		hashTable->remove(file, PageNo);
+		bufDescTable[frame].Clear();
+	}
+	catch (HashNotFoundException e) {
+		// Page not found in buffer.
+		return;
+	}
 }
 
 void BufMgr::printSelf(void) 
