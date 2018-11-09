@@ -36,66 +36,70 @@ void test3();
 void test4();
 void test5();
 void test6();
+void test7();
+void test8();
+void test9();
+void test10();
 void testBufMgr();
 
-int main() 
+int main()
 {
 	//Following code shows how to you File and Page classes
 
-  const std::string& filename = "test.db";
-  // Clean up from any previous runs that crashed.
-  try
+	const std::string& filename = "test.db";
+	// Clean up from any previous runs that crashed.
+	try
 	{
-    File::remove(filename);
-  }
+		File::remove(filename);
+	}
 	catch(FileNotFoundException)
 	{
-  }
+	}
 
-  {
-    // Create a new database file.
-    File new_file = File::create(filename);
-    
-    // Allocate some pages and put data on them.
-    PageId third_page_number;
-    for (int i = 0; i < 5; ++i) {
-      Page new_page = new_file.allocatePage();
-      if (i == 3) {
-        // Keep track of the identifier for the third page so we can read it
-        // later.
-        third_page_number = new_page.page_number();
-      }
-      new_page.insertRecord("hello!");
-      // Write the page back to the file (with the new data).
-      new_file.writePage(new_page);
-    }
+	{
+		// Create a new database file.
+		File new_file = File::create(filename);
 
-    // Iterate through all pages in the file.
-    for (FileIterator iter = new_file.begin();
-         iter != new_file.end();
-         ++iter) {
-      // Iterate through all records on the page.
-      for (PageIterator page_iter = (*iter).begin();
-           page_iter != (*iter).end();
-           ++page_iter) {
-        std::cout << "Found record: " << *page_iter
-            << " on page " << (*iter).page_number() << "\n";
-      }
-    }
+		// Allocate some pages and put data on them.
+		PageId third_page_number;
+		for (int i = 0; i < 5; ++i) {
+			Page new_page = new_file.allocatePage();
+			if (i == 3) {
+				// Keep track of the identifier for the third page so we can read it
+				// later.
+				third_page_number = new_page.page_number();
+			}
+			new_page.insertRecord("hello!");
+			// Write the page back to the file (with the new data).
+			new_file.writePage(new_page);
+		}
 
-    // Retrieve the third page and add another record to it.
-    Page third_page = new_file.readPage(third_page_number);
-    const RecordId& rid = third_page.insertRecord("world!");
-    new_file.writePage(third_page);
+		// Iterate through all pages in the file.
+		for (FileIterator iter = new_file.begin();
+		iter != new_file.end();
+		++iter) {
+			// Iterate through all records on the page.
+			for (PageIterator page_iter = (*iter).begin();
+			page_iter != (*iter).end();
+			++page_iter) {
+				std::cout << "Found record: " << *page_iter
+				<< " on page " << (*iter).page_number() << "\n";
+			}
+		}
 
-    // Retrieve the record we just added to the third page.
-    std::cout << "Third page has a new record: "
-        << third_page.getRecord(rid) << "\n\n";
-  }
-  // new_file goes out of scope here, so file is automatically closed.
+		// Retrieve the third page and add another record to it.
+		Page third_page = new_file.readPage(third_page_number);
+		const RecordId& rid = third_page.insertRecord("world!");
+		new_file.writePage(third_page);
 
-  // Delete the file since we're done with it.
-  File::remove(filename);
+		// Retrieve the record we just added to the third page.
+		std::cout << "Third page has a new record: "
+		<< third_page.getRecord(rid) << "\n\n";
+	}
+	// new_file goes out of scope here, so file is automatically closed.
+
+	// Delete the file since we're done with it.
+	File::remove(filename);
 
 	//This function tests buffer manager, comment this line if you don't wish to test buffer manager
 	testBufMgr();
@@ -107,23 +111,23 @@ void testBufMgr()
 	bufMgr = new BufMgr(num);
 
 	// create dummy files
-  const std::string& filename1 = "test.1";
-  const std::string& filename2 = "test.2";
-  const std::string& filename3 = "test.3";
-  const std::string& filename4 = "test.4";
-  const std::string& filename5 = "test.5";
+	const std::string& filename1 = "test.1";
+	const std::string& filename2 = "test.2";
+	const std::string& filename3 = "test.3";
+	const std::string& filename4 = "test.4";
+	const std::string& filename5 = "test.5";
 
-  try
+	try
 	{
-    File::remove(filename1);
-    File::remove(filename2);
-    File::remove(filename3);
-    File::remove(filename4);
-    File::remove(filename5);
-  }
+		File::remove(filename1);
+		File::remove(filename2);
+		File::remove(filename3);
+		File::remove(filename4);
+		File::remove(filename5);
+	}
 	catch(FileNotFoundException e)
 	{
-  }
+	}
 
 	File file1 = File::create(filename1);
 	File file2 = File::create(filename2);
@@ -138,7 +142,7 @@ void testBufMgr()
 	file5ptr = &file5;
 
 	//Test buffer manager
-	//Comment tests which you do not wish to run now. Tests are dependent on their preceding tests. So, they have to be run in the following order. 
+	//Comment tests which you do not wish to run now. Tests are dependent on their preceding tests. So, they have to be run in the following order.
 	//Commenting  a particular test requires commenting all tests that follow it else those tests would fail.
 	test1();
 	test2();
@@ -146,6 +150,12 @@ void testBufMgr()
 	test4();
 	test5();
 	test6();
+	test7();
+	test8();
+	test9();
+	test10();
+
+	delete bufMgr; // moved line according to Piazza post @321
 
 	//Close files before deleting them
 	file1.~File();
@@ -160,8 +170,6 @@ void testBufMgr()
 	File::remove(filename3);
 	File::remove(filename4);
 	File::remove(filename5);
-
-	delete bufMgr;
 
 	std::cout << "\n" << "Passed all tests." << "\n";
 }
@@ -196,14 +204,14 @@ void test2()
 	//Writing and reading back multiple files
 	//The page number and the value should match
 
-	for (i = 0; i < num/3; i++) 
+	for (i = 0; i < num/3; i++)
 	{
 		bufMgr->allocPage(file2ptr, pageno2, page2);
 		sprintf((char*)tmpbuf, "test.2 Page %d %7.1f", pageno2, (float)pageno2);
 		rid2 = page2->insertRecord(tmpbuf);
 
 		int index = random() % num;
-    pageno1 = pid[index];
+		pageno1 = pid[index];
 		bufMgr->readPage(file1ptr, pageno1, page);
 		sprintf((char*)tmpbuf, "test.1 Page %d %7.1f", pageno1, (float)pageno1);
 		if(strncmp(page->getRecord(rid[index]).c_str(), tmpbuf, strlen(tmpbuf)) != 0)
@@ -293,7 +301,7 @@ void test5()
 	std::cout << "Test 5 passed" << "\n";
 
 	for (i = 1; i <= num; i++)
-		bufMgr->unPinPage(file5ptr, i, true);
+	bufMgr->unPinPage(file5ptr, i, true);
 }
 
 void test6()
@@ -314,8 +322,121 @@ void test6()
 
 	std::cout << "Test 6 passed" << "\n";
 
-	for (i = 1; i <= num; i++) 
-		bufMgr->unPinPage(file1ptr, i, true);
+	for (i = 1; i <= num; i++)
+	bufMgr->unPinPage(file1ptr, i, true);
 
 	bufMgr->flushFile(file1ptr);
+}
+
+/**
+Allocates pages in a file, disposes the page at index 0, then tries to read
+that page back. Should generate an error.
+*/
+void test7() {
+	for (i = 0; i < num; i++) {
+		bufMgr->allocPage(file1ptr, pid[i], page);
+		sprintf((char*)tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+		rid[i] = page->insertRecord(tmpbuf);
+		bufMgr->unPinPage(file1ptr, pid[i], true);
+	}
+
+	// Dispose of page.
+	bufMgr->disposePage(file1ptr, pid[0]);
+
+	try {
+		for (i = 0; i < num; i++) {
+			bufMgr->readPage(file1ptr, pid[i], page);
+			sprintf((char*)&tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+			if(strncmp(page->getRecord(rid[i]).c_str(), tmpbuf, strlen(tmpbuf)) != 0) {
+				PRINT_ERROR("ERROR :: CONTENTS DID NOT MATCH");
+			}
+			bufMgr->unPinPage(file1ptr, pid[i], false);
+			PRINT_ERROR("ERROR :: Should not be able to read a page that has been " <<
+			"disposed. Exception should have been thrown before execution " <<
+			"reaches this point.");
+		}
+	} catch (InvalidPageException e) {}
+
+	std::cout<< "Test 7 passed" << "\n";
+}
+
+/**
+Ensures any exceptions from trying to dispose of a page not in the buffer pool
+is caught within disposePage().
+*/
+void test8() {
+	try {
+		// Dispose of page.
+		bufMgr->flushFile(file1ptr);
+	}
+	catch(std::exception e) {
+		PRINT_ERROR("ERROR :: disposePage() should handle the error. Exception " <<
+		"should not have been thrown.");
+	}
+
+	std::cout<< "Test 8 passed" << "\n";
+}
+
+/**
+Ensures pages can still be read from buffer pool after flushFile() has been
+called.
+*/
+void test9() {
+	for (i = 0; i < num; i++) {
+		bufMgr->allocPage(file1ptr, pid[i], page);
+		sprintf((char*)tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+		rid[i] = page->insertRecord(tmpbuf);
+		bufMgr->unPinPage(file1ptr, pid[i], true);
+	}
+
+	// Dispose of page.
+	bufMgr->flushFile(file1ptr);
+
+	try {
+		for (i = 0; i < num; i++) {
+			bufMgr->readPage(file1ptr, pid[i], page);
+			sprintf((char*)&tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+			if(strncmp(page->getRecord(rid[i]).c_str(), tmpbuf, strlen(tmpbuf)) != 0) {
+				PRINT_ERROR("ERROR :: CONTENTS DID NOT MATCH");
+			}
+			bufMgr->unPinPage(file1ptr, pid[i], false);
+		}
+	} catch (InvalidPageException e) {
+		PRINT_ERROR("ERROR :: Should be able to read a page that has been " <<
+		"flushed. Exception should not have been thrown.");
+	}
+
+	std::cout<< "Test 9 passed" << "\n";
+}
+
+/**
+Ensures pages can still be read from before a the buffer pool has exceeeded its
+capacity.
+*/
+void test10() {
+	try {
+		for (i = 0; i < num + 1; i++) {
+			bufMgr->allocPage(file1ptr, pid[i], page);
+			sprintf((char*)tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+			rid[i] = page->insertRecord(tmpbuf);
+			bufMgr->unPinPage(file1ptr, pid[i], true);
+		}
+	} catch (BufferExceededException e) {}
+
+	try {
+		for (i = 0; i < num; i++) {
+			bufMgr->readPage(file1ptr, pid[i], page);
+			sprintf((char*)&tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
+			if(strncmp(page->getRecord(rid[i]).c_str(), tmpbuf, strlen(tmpbuf)) != 0) {
+				PRINT_ERROR("ERROR :: CONTENTS DID NOT MATCH");
+			}
+			bufMgr->unPinPage(file1ptr, pid[i], false);
+		}
+	} catch (InvalidPageException e) {
+		PRINT_ERROR("ERROR :: Should be able to read a pages after a " <<
+		"BufferExceededException has been thrown. Exception should not have " <<
+		"been thrown.");
+	}
+
+	std::cout<< "Test 10 passed" << "\n";
 }
