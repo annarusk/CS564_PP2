@@ -39,12 +39,12 @@ BufMgr::~BufMgr() {
 	/* Flush dirty pages to disk, deallocate buffer pool and bufDescTable */
 	for (FrameId i=0; i<numBufs; i++) {
 		if (bufDescTable[i].dirty) {
-			//bufDescTable[i].file->writePage(bufPool[i]);
+			bufDescTable[i].file->writePage(bufPool[i]);
 		}
 	}
-	//delete bufPool;
-	//delete hashTable;
-	//delete bufDescTable;
+	delete[] bufPool;
+	delete hashTable;
+	delete[] bufDescTable;
 }
 
 void BufMgr::advanceClock()
