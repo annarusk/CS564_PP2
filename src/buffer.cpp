@@ -1,7 +1,7 @@
 /**
  * Authors: Jim Twieg (9044486265)
- * 	Anna Rusk
- * 	Katie Zutter
+ * 	Anna Rusk (9071399217)
+ * 	Katie Zutter (9070421152)
  * 
  * Buffer.cpp defines the BufMgr class and necessary functions
  * to act as a simple DBMS buffer manager using a Clock replacement

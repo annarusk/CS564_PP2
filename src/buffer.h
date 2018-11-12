@@ -1,7 +1,7 @@
 /**
  * Authors: Jim Twieg (9044486265)
- * 	Anna Rusk
- * 	Katie Zutter
+ * 	Anna Rusk (9071399217)
+ * 	Katie Zutter (9070421152)
  * 
  * @author See Contributors.txt for code contributors and overview of BadgerDB.
  *
